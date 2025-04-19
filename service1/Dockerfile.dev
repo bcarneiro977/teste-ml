@@ -1,0 +1,17 @@
+FROM golang:1.24-alpine
+
+WORKDIR /app
+
+# Instale as dependências necessárias para o desenvolvimento (se houver)
+# Exemplo:
+# RUN apk add --no-cache git
+
+# As dependências serão gerenciadas no host e mapeadas para o container
+# COPY go.mod go.sum ./
+# RUN go mod download
+
+# O código fonte será mapeado diretamente, então não precisamos copiá-lo aqui
+# COPY . .
+
+# O comando para executar será definido no docker-compose.yml para facilitar a alteração
+CMD ["echo", "Serviço em modo de desenvolvimento. Use 'docker compose exec service1 go run .' para rodar."]
