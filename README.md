@@ -1,42 +1,42 @@
 
 # Fluxo de Pedido - Arquitetura
 
-Este projeto simula um fluxo de pedido entre os serviços `API Gateway`, `Service1`, `RabbitMQ`, `Service2` e `Postgres`. A arquitetura foi projetada para demonstrar como diferentes componentes podem interagir em um cenário de microserviços.
+Este projeto simula um fluxo de pedido entre os serviços `API Gateway`, `servico-pedido`, `RabbitMQ`, `servico-consulta` e `Postgres`. A arquitetura foi projetada para demonstrar como diferentes componentes podem interagir em um cenário de microserviços.
 
 ## Arquitetura
 
 O fluxo ocorre da seguinte forma:
 
-1. **API Gateway (Nginx)**: O ponto de entrada para as requisições HTTP. Ele redireciona as requisições para o `Service1` via proxy reverso.
-2. **Service1**: Recebe os pedidos, valida os dados e os publica em uma fila do RabbitMQ para processamento.
-3. **RabbitMQ**: Fila onde os pedidos são armazenados e aguardam processamento pelo `Service2`.
-4. **Service2**: Consome os pedidos da fila, realiza o processamento e gera uma resposta.
-5. **Postgres**: Banco de dados utilizado por `Service2` para armazenar informações relacionadas ao pedido, como os itens e a localização.
+1. **API Gateway (Nginx)**: O ponto de entrada para as requisições HTTP. Ele redireciona as requisições para o `servico-pedido` via proxy reverso.
+2. **servico-pedido**: Recebe os pedidos, valida os dados e os publica em uma fila do RabbitMQ para processamento.
+3. **RabbitMQ**: Fila onde os pedidos são armazenados e aguardam processamento pelo `servico-consulta`.
+4. **servico-consulta**: Consome os pedidos da fila, realiza o processamento e gera uma resposta.
+5. **Postgres**: Banco de dados utilizado por `servico-consulta` para armazenar informações relacionadas ao pedido, como os itens e a localização.
 
 ## Fluxo
 
 ### 1. Requisição de Pedido
 
-O fluxo começa com o API Gateway recebendo uma requisição HTTP `POST` na rota `/service1/pedido`. O API Gateway (Nginx) encaminha esta requisição para o `Service1`.
+O fluxo começa com o API Gateway recebendo uma requisição HTTP `POST` na rota `/servico-pedido/pedido`. O API Gateway (Nginx) encaminha esta requisição para o `servico-pedido`.
 
-### 2. Processamento do Pedido (Service1)
+### 2. Processamento do Pedido (servico-pedido)
 
-- O `Service1` valida o JSON recebido e cria um pedido com informações como `ID`, `UF`, e os itens no pedido.
-- Em seguida, o `Service1` publica o pedido na fila `novo_pedido` do RabbitMQ, com a informação de `correlation_id` e a `reply_to` apontando para uma fila de resposta temporária.
+- O `servico-pedido` valida o JSON recebido e cria um pedido com informações como `ID`, `UF`, e os itens no pedido.
+- Em seguida, o `servico-pedido` publica o pedido na fila `novo_pedido` do RabbitMQ, com a informação de `correlation_id` e a `reply_to` apontando para uma fila de resposta temporária.
 
 ### 3. Fila RabbitMQ
 
-- O pedido é colocado na fila `novo_pedido` do RabbitMQ. O `Service2` consome essa fila para processar o pedido.
+- O pedido é colocado na fila `novo_pedido` do RabbitMQ. O `servico-consulta` consome essa fila para processar o pedido.
   
-### 4. Processamento do Pedido (Service2)
+### 4. Processamento do Pedido (servico-consulta)
 
-- O `Service2` consome a mensagem da fila e realiza o processamento necessário (ex: selecionando o centro de distribuição para cada item do pedido).
-- O `Service2` armazena os dados do pedido no banco de dados Postgres.
-- Após o processamento, o `Service2` envia uma resposta de volta para o `Service1` através da fila de resposta temporária no RabbitMQ.
+- O `servico-consulta` consome a mensagem da fila e realiza o processamento necessário (ex: selecionando o centro de distribuição para cada item do pedido).
+- O `servico-consulta` armazena os dados do pedido no banco de dados Postgres.
+- Após o processamento, o `servico-consulta` envia uma resposta de volta para o `servico-pedido` através da fila de resposta temporária no RabbitMQ.
 
 ### 5. Resposta para o Cliente
 
-- O `Service1` escuta a fila de resposta e, ao receber a resposta, envia o resultado para o cliente via HTTP.
+- O `servico-pedido` escuta a fila de resposta e, ao receber a resposta, envia o resultado para o cliente via HTTP.
 - O cliente recebe o status do pedido, incluindo os itens e o centro de distribuição selecionado para cada um.
 
 ---
@@ -44,10 +44,10 @@ O fluxo começa com o API Gateway recebendo uma requisição HTTP `POST` na rota
 ## Tecnologias Usadas
 
 - **API Gateway (Nginx)**: Responsável por redirecionar as requisições HTTP para os serviços.
-- **Service1**: Microserviço escrito em Go que lida com os pedidos e interage com RabbitMQ e o `Service2`.
-- **RabbitMQ**: Fila de mensagens usada para desacoplar os serviços e permitir a comunicação assíncrona entre `Service1` e `Service2`.
-- **Service2**: Microserviço escrito em Go que processa os pedidos da fila e grava as informações no Postgres.
-- **Postgres**: Banco de dados relacional usado para armazenar os dados do pedido processados pelo `Service2`.
+- **servico-pedido**: Microserviço escrito em Go que lida com os pedidos e interage com RabbitMQ e o `servico-consulta`.
+- **RabbitMQ**: Fila de mensagens usada para desacoplar os serviços e permitir a comunicação assíncrona entre `servico-pedido` e `servico-consulta`.
+- **servico-consulta**: Microserviço escrito em Go que processa os pedidos da fila e grava as informações no Postgres.
+- **Postgres**: Banco de dados relacional usado para armazenar os dados do pedido processados pelo `servico-consulta`.
 
 ---
 
@@ -56,7 +56,7 @@ O fluxo começa com o API Gateway recebendo uma requisição HTTP `POST` na rota
 1. **Clonar o repositório**:
 
     ```bash
-    git clone https://github.com/seu-usuario/projeto.git
+    git clone https://github.com/bcarneiro977/teste-ml
     cd projeto
     ```
 
@@ -70,17 +70,17 @@ O fluxo começa com o API Gateway recebendo uma requisição HTTP `POST` na rota
 
     Isso iniciará os seguintes containers:
     - `nginx`: API Gateway
-    - `service1`: Serviço responsável por receber pedidos e enviar para o RabbitMQ
-    - `service2`: Serviço que consome os pedidos da fila e processa os dados
+    - `servico-pedido`: Serviço responsável por receber pedidos e enviar para o RabbitMQ
+    - `servico-consulta`: Serviço que consome os pedidos da fila e processa os dados
     - `postgres`: Banco de dados relacional onde as informações do pedido são armazenadas
-    - `rabbitmq`: Fila de mensagens usada para comunicação assíncrona entre `Service1` e `Service2`
+    - `rabbitmq`: Fila de mensagens usada para comunicação assíncrona entre `servico-pedido` e `servico-consulta`
 
 3. **Testar a API**:
 
-    Após os containers estarem em funcionamento, você pode testar a API `POST /service1/pedido` no seguinte endpoint:
+    Após os containers estarem em funcionamento, você pode testar a API `POST /servico-pedido/pedido` no seguinte endpoint:
 
     ```http
-    POST http://localhost/service1/pedido
+    POST http://localhost/servico-pedido/pedido
     ```
 
     **Exemplo de corpo da requisição**:
@@ -114,7 +114,7 @@ O fluxo começa com o API Gateway recebendo uma requisição HTTP `POST` na rota
 
 ## Endpoints
 
-### 1. `/service1/pedido` (POST)
+### 1. `/servico-pedido/pedido` (POST)
 
 Recebe um pedido com os itens e envia para o RabbitMQ.
 
