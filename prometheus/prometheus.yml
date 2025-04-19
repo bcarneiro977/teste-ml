@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s  # Intervalo para coletar as métricas
+
+scrape_configs:
+  - job_name: 'servico-pedido'
+    static_configs:
+      - targets: ['nginx-gateway:80']
+        labels:
+          service: 'pedido'
+    metrics_path: /metrics/pedido
+
+  - job_name: 'servico-consulta'
+    static_configs:
+      - targets: ['nginx-gateway:80']
+        labels:
+          service: 'consulta'
+    metrics_path: /metrics/consulta
